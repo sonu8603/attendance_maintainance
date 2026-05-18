@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../route.dart';
-import '../../admine/screens/admine_main_screen.dart';
+import '../../admine/manage_employee/screens/admine_main_screen.dart';
 import '../../employees/screens/employee_main_screen.dart';
 import '../../superviser/screens/supervisor_main_screen.dart';
 import '../provider/auth_provider.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../provider/employee_provider.dart';
+import '../../provider/employee_provider.dart';
 import 'add_employee_screen.dart';
 import 'edit_employee_screen.dart';
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/utils/custom_textfield.dart';
-import '../provider/employee_provider.dart';
+
+import '../../../features/utils/custom_textfield.dart';
+import '../../provider/employee_provider.dart';
+
 
 class EditEmployeeScreen extends ConsumerStatefulWidget {
   final String employeeId;

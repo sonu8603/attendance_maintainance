@@ -1,13 +1,14 @@
+import 'package:attendance_maintainance/admine/manage_sites/screens/sites_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../authentication/provider/auth_provider.dart';
+import '../../../authentication/provider/auth_provider.dart';
+import '../../../authentication/screens/employee_id_screen.dart';
+import '../../../authentication/screens/waiting_aproval_screen.dart';
+import '../../../features/help/screens/help_screen.dart';
+import '../../../route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../authentication/screens/employee_id_screen.dart';
-import '../../authentication/screens/waiting_aproval_screen.dart';
-import '../../features/help/screens/help_screen.dart';
-import '../../route.dart';
-import '../screens/employee_list_screen.dart';
+import 'employee_list_screen.dart';
 
 
 class AdminMainScreen extends ConsumerWidget {
@@ -170,7 +171,7 @@ class AdminMainScreen extends ConsumerWidget {
                         subtitle: 'Create / Assign',
                         color: Colors.green,
                         onTap: () {
-                          // TODO: SiteListScreen
+                          Navigator.push(context, MaterialPageRoute(builder: (context)=>SitesScreen()));
                         },
                       ),
                       _AdminCard(
