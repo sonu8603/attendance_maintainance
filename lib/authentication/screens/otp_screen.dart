@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../admine/screens/admine_main_screen.dart';
+import '../../employees/screens/employee_main_screen.dart';
+import '../../superviser/screens/supervisor_main_screen.dart';
+import '../../route.dart';
+import '../provider/auth_provider.dart';
 
-import '../services/auth_service.dart';
-
-class OtpScreen extends StatefulWidget {
+class OtpScreen extends ConsumerStatefulWidget {
   final String employeeId;
-  final String phone;   // hidden — user ko nahi dikhega
+  final String phone;
   final String name;
 
   const OtpScreen({
@@ -16,79 +20,85 @@ class OtpScreen extends StatefulWidget {
   });
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  ConsumerState<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
+class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _otpController = TextEditingController();
-  String? _verificationId;
   bool _isSending = true;
-  bool _isVerifying = false;
-  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _sendOtp(); // Screen open hote hi OTP bhejo
+    // पोस्ट फ्रेम कॉलबैक में सेफ तरीके से ओटीपी ट्रिगर करें
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sendOtp());
   }
 
   Future<void> _sendOtp() async {
-    setState(() {
-      _isSending = true;
-      _error = null;
-    });
+    setState(() => _isSending = true);
 
-    await AuthService.sendOtp(
+    await ref.read(authProvider.notifier).sendOtp(
       phone: widget.phone,
       onCodeSent: (verificationId) {
         if (mounted) {
-          setState(() {
-            _verificationId = verificationId;
-            _isSending = false;
-          });
+          setState(() => _isSending = false);
         }
       },
       onError: (error) {
         if (mounted) {
-          setState(() {
-            _isSending = false;
-            _error = 'Failed to send OTP. Try again.';
-          });
+          setState(() => _isSending = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('OTP Send Failed: $error'), backgroundColor: Colors.red),
+          );
         }
       },
     );
   }
 
   Future<void> _verifyOtp() async {
-    if (_verificationId == null) return;
-
     final otp = _otpController.text.trim();
-    if (otp.length != 6) {
-      setState(() => _error = 'Enter 6-digit OTP');
+    if (otp.length != 6) return;
+
+    // 🎯 लोकल वेरिएबल के बजाय सीधे हमारे भरोसेमंद प्रदाता की स्टेट से आईडी उठाओ
+    final vId = ref.read(authProvider).verificationId;
+    if (vId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verification ID missing. Resend OTP.'), backgroundColor: Colors.orange),
+      );
       return;
     }
 
-    setState(() {
-      _isVerifying = true;
-      _error = null;
-    });
-
-    final success = await AuthService.verifyOtp(
-      verificationId: _verificationId!,
-      otp: otp,
-    );
+    final success = await ref
+        .read(authProvider.notifier)
+        .verifyOtp(verificationId: vId, otp: otp);
 
     if (!mounted) return;
 
     if (success) {
-      // ✅ OTP sahi — role ke hisab se navigate karo
-      await AuthService.saveAuthUid(widget.employeeId);
-      await AuthService.navigateByRole(context, widget.employeeId);
+      final role = ref.read(authProvider).role ?? '';
+      _navigateByRole(role);
     } else {
-      setState(() {
-        _isVerifying = false;
-        _error = 'Wrong OTP. Please try again.';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wrong OTP. Try again.'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _navigateByRole(String role) {
+    switch (role) {
+      case 'admin':
+        NavigationHelper.pushReplace(context, const AdminMainScreen());
+        break;
+      case 'supervisor':
+        NavigationHelper.pushReplace(context, const SupervisorMainScreen());
+        break;
+      case 'employee':
+        NavigationHelper.pushReplace(context, const EmployeeMainScreen());
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Role not assigned. Contact admin.'), backgroundColor: Colors.red),
+        );
     }
   }
 
@@ -100,6 +110,10 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isVerifying = authState.status == AuthStatus.loading;
+    final error = authState.status == AuthStatus.error ? authState.errorMessage : null;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -108,7 +122,10 @@ class _OtpScreenState extends State<OtpScreen> {
         foregroundColor: Colors.black,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            ref.read(authProvider.notifier).resetOtpStatus();
+            Navigator.pop(context);
+          },
         ),
       ),
       body: SafeArea(
@@ -118,49 +135,25 @@ class _OtpScreenState extends State<OtpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Spacer(flex: 1),
-
-              // Icon
               Center(
                 child: Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline,
-                    size: 56,
-                    color: Colors.green,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                  child: const Icon(Icons.lock_outline, size: 56, color: Colors.white),
                 ),
               ),
-
               const SizedBox(height: 32),
-
               Text(
                 'Hello, ${widget.name.split(' ').first}!',
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-
-              // ✅ Phone nahi dikhate — sirf "registered details" kehte hain
               Text(
-                _isSending
-                    ? 'Sending OTP...'
-                    : 'OTP sent to your registered phone number.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                  height: 1.5,
-                ),
+                _isSending ? 'Sending OTP...' : 'OTP sent to your registered phone number.',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
               ),
-
               const SizedBox(height: 36),
 
-              // OTP input
               _isSending
                   ? const Center(child: CircularProgressIndicator())
                   : TextField(
@@ -170,88 +163,53 @@ class _OtpScreenState extends State<OtpScreen> {
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(6),
                 ],
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 10,
-                ),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 10),
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
                   hintText: '------',
-                  hintStyle: TextStyle(
-                    letterSpacing: 10,
-                    color: Colors.grey.shade300,
-                    fontSize: 28,
-                  ),
-                  errorText: _error,
+                  hintStyle: TextStyle(letterSpacing: 10, color: Colors.grey.shade300, fontSize: 28),
+                  errorText: error,
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                        color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                        color: Colors.green, width: 2),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                        color: Colors.red, width: 1.5),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.green, width: 2)),
+                  errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
                   counterText: '',
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 18, horizontal: 20),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
                 ),
                 onSubmitted: (_) => _verifyOtp(),
               ),
-
               const SizedBox(height: 24),
 
-              // Verify button
               if (!_isSending)
                 SizedBox(
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: _isVerifying ? null : _verifyOtp,
+                    onPressed: isVerifying ? null : _verifyOtp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
-                    child: _isVerifying
-                        ? const CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2)
-                        : const Text(
-                      'Verify & Login',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: isVerifying
+                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        : const Text('Verify & Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
                 ),
-
               const SizedBox(height: 16),
 
-              // Resend OTP
-              if (!_isSending && !_isVerifying)
+              if (!_isSending && !isVerifying)
                 Center(
                   child: TextButton(
-                    onPressed: _sendOtp,
-                    child: const Text(
-                      'Resend OTP',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    onPressed: () {
+                      _otpController.clear();
+                      _sendOtp();
+                    },
+                    child: const Text('Resend OTP', style: TextStyle(color: Colors.grey)),
                   ),
                 ),
-
               const Spacer(flex: 2),
             ],
           ),

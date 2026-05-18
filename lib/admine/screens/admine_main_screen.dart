@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../authentication/provider/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../authentication/screens/employee_id_screen.dart';
 import '../../authentication/screens/waiting_aproval_screen.dart';
-import '../../authentication/services/auth_service.dart';
 import '../../route.dart';
 import '../screens/employee_list_screen.dart';
 
 
-class AdminMainScreen extends StatelessWidget {
+class AdminMainScreen extends ConsumerWidget {
   const AdminMainScreen({super.key});
 
-  // ✅ Logout — employeeId session se clear karo
-  Future<void> _logout(BuildContext context) async {
-    await AuthService.signOut();
+
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(authProvider.notifier).signOut();
     if (context.mounted) {
-      NavigationHelper.pushReplace(
-          context, const EmployeeIdScreen());
+      NavigationHelper.pushReplace(context, const EmployeeIdScreen());
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // ✅ Firebase Auth uid se employees collection se data lo
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
@@ -36,7 +36,7 @@ class AdminMainScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
+            onPressed: () => _logout(context,ref),
           ),
         ],
       ),
