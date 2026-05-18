@@ -1,3 +1,4 @@
+import 'package:attendance_maintainance/features/help/screens/help_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../authentication/screens/employee_id_screen.dart';
@@ -33,9 +34,17 @@ class EmployeeMainScreen extends ConsumerWidget {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              icon: const Icon(Icons.help),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>HelpScreen()));
+              }
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
-            // ✅ ref pass karo logout mein
             onPressed: () => _logout(context, ref),
           ),
         ],

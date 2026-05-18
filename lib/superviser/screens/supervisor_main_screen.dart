@@ -1,3 +1,4 @@
+import 'package:attendance_maintainance/features/help/screens/help_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,15 @@ class SupervisorMainScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         elevation: 0,
         actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              icon: const Icon(Icons.help),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>HelpScreen()));
+              }
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _logout(context),

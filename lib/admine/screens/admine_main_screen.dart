@@ -5,6 +5,7 @@ import '../../authentication/provider/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../authentication/screens/employee_id_screen.dart';
 import '../../authentication/screens/waiting_aproval_screen.dart';
+import '../../features/help/screens/help_screen.dart';
 import '../../route.dart';
 import '../screens/employee_list_screen.dart';
 
@@ -34,6 +35,20 @@ class AdminMainScreen extends ConsumerWidget {
         automaticallyImplyLeading: false,
         elevation: 0,
         actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              icon: const Icon(Icons.help),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HelpScreen(),
+                  ),
+                );
+              }
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _logout(context,ref),
