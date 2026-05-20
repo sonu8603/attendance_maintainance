@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../provider/site_provider.dart';
 import 'add_site_screen.dart';
 
-// सर्च क्वेरी के लिए Notifier
+
 class SiteSearchNotifier extends Notifier<String> {
   @override
   String build() => '';
@@ -30,7 +30,7 @@ class SitesScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // 🔍 सर्च बार
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Colors.white,
@@ -49,7 +49,7 @@ class SitesScreen extends ConsumerWidget {
             ),
           ),
 
-          // 📋 साइट्स की लिस्ट
+          // 📋 site list
           Expanded(
             child: sitesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),

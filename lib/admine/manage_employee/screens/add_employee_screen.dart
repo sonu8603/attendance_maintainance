@@ -4,9 +4,17 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../../../features/utils/custom_textfield.dart';
+import '../../manage_sites/provider/site_provider.dart';
 import '../../provider/employee_provider.dart';
 
+
+final selectedSiteIdProvider =
+StateProvider<String?>((ref) => null);
+
+final selectedSiteNameProvider =
+StateProvider<String?>((ref) => null);
 
 class AddEmployeeScreen extends ConsumerStatefulWidget {
   const AddEmployeeScreen({super.key});
@@ -27,6 +35,8 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen>
   final addressController = TextEditingController();
   String? selectedRole;
   String? generatedId;
+  String? selectedSiteId;
+  String? selectedSiteName;
 
   List<Map<String, String>> _parsedEmployees = [];
   bool _isUploading = false;
@@ -69,8 +79,8 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen>
       email: emailController.text.trim(),
       address: addressController.text.trim(),
       role: selectedRole!,
-      siteId: 'unassigned',
-      createdBy: adminUid,
+      siteId: ref.read(selectedSiteIdProvider) ?? 'Unassigned',
+      createdBy: adminUid, siteName: ref.read(selectedSiteNameProvider)??'Unassigned',
     );
 
     if (!mounted) return;
@@ -140,8 +150,8 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen>
         email: emp['email'] ?? '',
         address: emp['address'] ?? '',
         role: emp['role'] ?? 'employee',
-        siteId: 'unassigned',
-        createdBy: adminUid,
+        siteId: ref.read(selectedSiteIdProvider) ?? 'Unassigned',
+        createdBy: adminUid, siteName: ref.read(selectedSiteNameProvider)??'Unassigned',
       );
       if (result != null) { _successCount++; } else { _failCount++; }
     }
@@ -239,6 +249,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen>
   @override
   Widget build(BuildContext context) {
     // ✅ Provider state watch karo
+    final sitesAsync = ref.watch(sitesStreamProvider);
     final employeeState = ref.watch(employeeNotifierProvider);
     final isLoading = employeeState is AsyncLoading;
 
@@ -271,6 +282,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen>
   }
 
   Widget _buildManualTab(bool isLoading) {
+    final sitesAsync = ref.watch(sitesStreamProvider);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Form(
@@ -337,6 +349,46 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen>
                   child: Text(r[0].toUpperCase() + r.substring(1)))).toList(),
               onChanged: (val) => setState(() => selectedRole = val),
               validator: (v) => v == null ? 'Role select karo' : null,
+            ),
+            const SizedBox(height: 14),
+
+            sitesAsync.when(
+              data: (sites) {
+                return DropdownButtonFormField<String>(
+                  value: selectedSiteId,
+                  decoration: InputDecoration(
+                    labelText: 'Assign Site',
+                    prefixIcon: const Icon(Icons.location_city),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: sites.map((site) {
+                    return DropdownMenuItem<String>(
+                      value: site['siteId'],
+                      child: Text(site['siteName']),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    final selectedSite =
+                    sites.firstWhere((e) => e['siteId'] == value);
+
+                    ref.read(selectedSiteIdProvider.notifier).state =
+                    selectedSite['siteId'];
+
+                    ref.read(selectedSiteNameProvider.notifier).state =
+                    selectedSite['siteName'];
+                  },
+                  validator: (v) =>
+                  v == null ? 'Please assign site' : null,
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const Text('Error loading sites'),
             ),
             const SizedBox(height: 32),
             SizedBox(
